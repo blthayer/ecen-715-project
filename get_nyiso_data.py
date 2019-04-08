@@ -1,4 +1,9 @@
-"""Module to download NYISO LMP data."""
+"""Module to download NYISO LMP data.
+
+Please read the NOTES section of nyiso_url.
+
+Adapt the "main" section of the code to download what you would like.
+"""
 # Third-party:
 import requests
 
