@@ -18,9 +18,20 @@ LMP_REALTIME_ZONAL = 'nyiso_lmp_realtime_zonal'
 LOAD_FORECAST = 'nyiso_load_forecast'
 LOAD_REALTIME = 'nyiso_load_realtime'
 
+# Years to grab data for (inclusive).
+START_YEAR = 2016
+END_YEAR = 2018
+START_MONTH = 1
+END_MONTH = 12
+
 # Download URLs for NYISO. NOTE: You should only have one base, med, and
 # end URL uncommented at a time.
 NYISO_BASE_URL = 'http://mis.nyiso.com/public/csv/'
+
+
+def get_date_str(year, month):
+    """Simple helper for creating the NYISO date strings."""
+    return str(year) + '{:02d}'.format(month) + '01'
 
 
 def nyiso_url(data_type, day_ahead, date_str, zonal=True):
@@ -114,7 +125,7 @@ def get_data(data_dir, data_type, day_ahead, zonal, start_year=2016,
         # Loop over months.
         for month in range(start_month, end_month+1):
             # Create a string for the date.
-            date_str = str(year) + '{:02d}'.format(month) + '01'
+            date_str = get_date_str(year, month)
             print('Downloading data for {}...'.format(date_str), end='',
                   flush=True)
 
@@ -151,19 +162,23 @@ if __name__ == '__main__':
     # Download all the zonal data.
     print('Downloading day ahead zonal LMP data.')
     get_data(data_dir=LMP_DAY_AHEAD_ZONAL, data_type='lmp',
-             day_ahead=True, zonal=True)
+             day_ahead=True, zonal=True, start_year=START_YEAR,
+             end_year=END_YEAR, start_month=START_MONTH, end_month=END_MONTH)
     print('*' * 80)
 
     print('Downloading realtime zonal LMP data.')
     get_data(data_dir=LMP_REALTIME_ZONAL, data_type='lmp',
-             day_ahead=False, zonal=True)
+             day_ahead=False, zonal=True, start_year=START_YEAR,
+             end_year=END_YEAR, start_month=START_MONTH, end_month=END_MONTH)
     print('*' * 80)
 
     print('Downloading forecast load data.')
     get_data(data_dir=LOAD_FORECAST, data_type='load',
-             day_ahead=True, zonal=True)
+             day_ahead=True, zonal=True, start_year=START_YEAR,
+             end_year=END_YEAR, start_month=START_MONTH, end_month=END_MONTH)
     print('*' * 80)
 
     print('Downloading realtime load data.')
     get_data(data_dir=LOAD_REALTIME, data_type='load',
-             day_ahead=False, zonal=True)
+             day_ahead=False, zonal=True, start_year=START_YEAR,
+             end_year=END_YEAR, start_month=START_MONTH, end_month=END_MONTH)
