@@ -1,6 +1,5 @@
 # Ignore downloaded NYISO LMP data
-nyiso_lmp/**
-nyiso_lmp.zip
+nyiso_*
 
 # Virtual environment
 venv/**
