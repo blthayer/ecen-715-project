@@ -16,6 +16,12 @@ from copy import deepcopy
 
 # Constants:
 LMP_DAY_AHEAD_FILE = 'lmp_day_ahead.csv'
+LMP_REALTIME_FILE = 'lmp_realtime.csv'
+LOAD_FORECAST_FILE = 'load_forecast.csv'
+LOAD_REALTIME_FILE = 'load_realtime.csv'
+
+# Use constant for timezone for consistency.
+TIMEZONE = 'America/New_York'
 
 
 def get_file_list(root_dir):
@@ -100,8 +106,7 @@ def localize_times(df):
         new_df = deepcopy(sub_df)
 
         # Localize the time index.
-        new_df.index = new_df.index.tz_localize('America/New_York',
-                                                ambiguous='infer')
+        new_df.index = new_df.index.tz_localize(TIMEZONE, ambiguous='infer')
         # Put the new localized df in our list.
         df_list.append(new_df)
 
@@ -147,11 +152,80 @@ def combine_lmp_day_ahead():
     # Pivot.
     df_pivot = df.pivot(columns='Name')
 
+    # Save to file.
     df_pivot.to_csv(LMP_DAY_AHEAD_FILE)
+
+
+def combine_lmp_realtime():
+    """Combine all day ahead lmp files into one."""
+    # Get all day-ahead LMP files.
+    files = get_file_list(root_dir=LMP_REALTIME_ZONAL)
+
+    # Read 'em all.
+    df = read_all_files(files)
+
+    # Clean up columns.
+    df = clean_columns(df)
+
+    # Localize the times. This is time consuming (heh).
+    df = localize_times(df)
+
+    # Pivot.
+    df_pivot = df.pivot(columns='Name')
+
+    # TODO: do we want to re-sample from 5 minutes to 1 hour?
+    # Save to file.
+    df_pivot.to_csv(LMP_REALTIME_FILE)
+
+
+def combine_load_forecast():
+    """Combine all load forecast files into one."""
+    # Get all day-ahead LMP files.
+    files = get_file_list(root_dir=LOAD_FORECAST)
+
+    # Read 'em all.
+    df = read_all_files(files)
+
+    # Rename the columns to be consistent with LMP data.
+    df.rename(lambda x: x.upper().replace('.', '').replace(' ', ''),
+              axis='columns', inplace=True)
+
+    # Localize the time.
+    df.index = df.index.tz_localize(TIMEZONE, ambiguous='infer')
+
+    # Save to file.
+    df.to_csv(LOAD_FORECAST_FILE)
+
+
+def combine_load_realtime():
+    """Combine all the realtime load files into one."""
+    # Get all day-ahead LMP files.
+    files = get_file_list(root_dir=LOAD_REALTIME)
+
+    # Read 'em all.
+    df = read_all_files(files)
+
+    # Drop the "Time Zone" column as it isn't useful.
+    df.drop(axis=1, labels=['Time Zone'], inplace=True)
+
+    # Clean up the columns.
+    df = clean_columns(df)
+
+    # Localize the times. This is time consuming (heh).
+    df = localize_times(df)
+
+    # Pivot.
+    df_pivot = df.pivot(columns='Name')
+
+    # Save to file.
+    df_pivot.to_csv(LOAD_REALTIME_FILE)
 
 
 def main():
     combine_lmp_day_ahead()
+    combine_lmp_realtime()
+    combine_load_forecast()
+    combine_load_realtime()
     pass
 
 
