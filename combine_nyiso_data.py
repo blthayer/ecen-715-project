@@ -14,6 +14,9 @@ import pandas as pd
 import os
 from copy import deepcopy
 
+# Constants:
+LMP_DAY_AHEAD_FILE = 'lmp_day_ahead.csv'
+
 
 def get_file_list(root_dir):
     """Helper to get listing of files for a root directory (root_dir).
@@ -44,32 +47,21 @@ def get_file_list(root_dir):
     return all_files
 
 
-def main():
-    # Get all day-ahead LMP files.
-    files = get_file_list(root_dir=LMP_DAY_AHEAD_ZONAL)
+def read_all_files(files):
+    """Helper to read all files in list into a DataFrame."""
+    return pd.concat([pd.read_csv(f, index_col=0, parse_dates=True,
+                                  infer_datetime_format=True) for f in files])
 
-    # Read 'em all.
-    df = pd.concat([pd.read_csv(f, index_col=0, parse_dates=True,
-                                infer_datetime_format=True) for f in files])
 
-    # Some files have a 'Marginal Cost Congestion ($/MWH' column instead
-    # of a 'Marginal Cost Congestion ($/MWHr)' column.
-    # Ensure the number of NaN's in both columns sum to be the length
-    # of the data:
-    col1 = 'Marginal Cost Congestion ($/MWH'
-    col2 = 'Marginal Cost Congestion ($/MWHr)'
-    col1_na = df[col1].isnull().sum()
-    col2_na = df[col2].isnull().sum()
-    assert col1_na + col2_na == df.shape[0]
+def clean_columns(df):
+    """Helper to do some standard cleaning on DataFrame columns.
 
-    # Zero out NaN's in those columns.
-    df.fillna(value={col1: 0, col2: 0}, inplace=True)
-
-    # Add col1 and col2
-    df[col2] = df[col1] + df[col2]
-
+    1) Make 'Name' categorical
+    2) Remove spaces and periods from 'Name'
+    3) Drop PTID (we have name, why use the ID?)
+    """
     # Drop col1. Also drop PTID while we're at it, as we don't need it.
-    df.drop(axis=1, labels=[col1, 'PTID'], inplace=True)
+    df.drop(axis=1, labels=['PTID'], inplace=True)
 
     # Make 'Name' categorical
     df['Name'] = df['Name'].astype('category')
@@ -78,6 +70,13 @@ def main():
     df['Name'] = \
         df['Name'].apply(lambda x: x.replace(' ', '').replace('.', ''))
 
+    return df
+
+
+def localize_times(df):
+    """Helper to get the times from naive to aware, as we have to deal
+    with daylight savings.
+    """
     # Well, we're in a pickle. We need to pivot the DataFrame. However,
     # we can't pivot until we've removed duplicates. Why do we have
     # duplicates? Daylight savings time. What's the fix? tz_localize.
@@ -109,9 +108,50 @@ def main():
     # Overwrite our 'df' variable.
     df = pd.concat(df_list)
 
+    return df
+
+
+def combine_lmp_day_ahead():
+    """Combine day ahead LMP files into one."""
+    # Get all day-ahead LMP files.
+    files = get_file_list(root_dir=LMP_DAY_AHEAD_ZONAL)
+
+    # Read 'em all.
+    df = read_all_files(files)
+
+    # Some files have a 'Marginal Cost Congestion ($/MWH' column instead
+    # of a 'Marginal Cost Congestion ($/MWHr)' column.
+    # Ensure the number of NaN's in both columns sum to be the length
+    # of the data:
+    col1 = 'Marginal Cost Congestion ($/MWH'
+    col2 = 'Marginal Cost Congestion ($/MWHr)'
+    col1_na = df[col1].isnull().sum()
+    col2_na = df[col2].isnull().sum()
+    assert col1_na + col2_na == df.shape[0]
+
+    # Zero out NaN's in those columns.
+    df.fillna(value={col1: 0, col2: 0}, inplace=True)
+
+    # Add col1 and col2
+    df[col2] = df[col1] + df[col2]
+
+    # Drop col1. Also drop PTID while we're at it, as we don't need it.
+    df.drop(axis=1, labels=[col1], inplace=True)
+
+    # Clean up columns.
+    df = clean_columns(df)
+
+    # Localize the times. This is time consuming (heh).
+    df = localize_times(df)
+
     # Pivot.
     df_pivot = df.pivot(columns='Name')
 
+    df_pivot.to_csv(LMP_DAY_AHEAD_FILE)
+
+
+def main():
+    combine_lmp_day_ahead()
     pass
 
 
