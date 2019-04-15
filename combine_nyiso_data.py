@@ -193,6 +193,11 @@ def combine_load_forecast():
     # Localize the time.
     df.index = df.index.tz_localize(TIMEZONE, ambiguous='infer')
 
+    # It turns out that the load forecast files have 6 days of forecast
+    # in them. Keep only the most recent forecast.
+    dup = df.index.duplicated(keep='last')
+    df = df[~dup]
+
     # Save to file.
     df.to_csv(LOAD_FORECAST_FILE)
 
@@ -222,10 +227,10 @@ def combine_load_realtime():
 
 
 def main():
-    combine_lmp_day_ahead()
-    combine_lmp_realtime()
+    # combine_lmp_day_ahead()
+    # combine_lmp_realtime()
     combine_load_forecast()
-    combine_load_realtime()
+    # combine_load_realtime()
     pass
 
 
