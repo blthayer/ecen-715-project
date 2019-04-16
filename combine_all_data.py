@@ -110,7 +110,7 @@ def main():
     all_data.sort_index()
     all_data.tz_convert('America/New_York')
     all_data = all_data['2016':'2018']
-    all_data.to_csv('all_data.csv', OUTFILE)
+    all_data.to_csv(OUTFILE)
 
     pass
 
