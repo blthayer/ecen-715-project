@@ -225,13 +225,42 @@ def combine_load_realtime():
     # Save to file.
     df_pivot.to_csv(LOAD_REALTIME_FILE)
 
+    return df_pivot
+
+
+def adjust_load_for_gridpiq(df):
+    """Function to adjust the load for GridPIQ."""
+    # Fill NaNs via time-based linear interpolation. There are only
+    # two gaps which cannot be filled with the limit set at 1.
+    # With the limit at 2, there's only one gap remaining. It's
+    # necessary to crank the limit up to 4 to fix this gap. Note that's
+    # only 20 minutes (5 minute intervals), so no big deal.
+    df.interpolate(method='time', limit=4, inplace=True)
+
+    # Ensure there are no NaNs left.
+    assert df.notna().all().all()
+
+    # Now, sum across the columns to get total load.
+    total_load = df.sum(axis=1)
+
+    # Get an average for each hour.
+    hourly = total_load.resample('60T').mean()
+
+    # Name the index and Series so it makes it into the file.
+    hourly.rename('NYISO_hourly_load_MW', inplace=True)
+    hourly.index.name = 'Time'
+
+    # That's it. Pretty easy.
+    hourly.to_csv('nyiso_hourly_load.csv', header=True, index=True)
+    pass
+
 
 def main():
     # combine_lmp_day_ahead()
     # combine_lmp_realtime()
     # combine_load_forecast()
-    combine_load_realtime()
-    pass
+    df = combine_load_realtime()
+    adjust_load_for_gridpiq(df)
 
 
 if __name__ == '__main__':
