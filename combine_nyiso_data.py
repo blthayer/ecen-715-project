@@ -229,8 +229,8 @@ def combine_load_realtime():
 def main():
     # combine_lmp_day_ahead()
     # combine_lmp_realtime()
-    combine_load_forecast()
-    # combine_load_realtime()
+    # combine_load_forecast()
+    combine_load_realtime()
     pass
 
 
